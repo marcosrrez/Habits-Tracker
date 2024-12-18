@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .habit-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .habit-name {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .streak {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .day-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        .completed {
+            background-color: #4CAF50;
+        }
+        #add-habit-form {
+            margin-top: 20px;
+            display: flex;
+        }
+        #new-habit-input {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Habit Tracker</h1>
+    
+    <div id="habits-list"></div>
+
+    <form id="add-habit-form">
+        <input type="text" id="new-habit-input" placeholder="Enter a new habit" required>
+        <button type="submit">Add Habit</button>
+    </form>
+
+    <script>
+        class HabitTracker {
+            constructor() {
+                this.habits = JSON.parse(localStorage.getItem('habits')) || [];
+                this.renderHabits();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const form = document.getElementById('add-habit-form');
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('new-habit-input');
+                    this.addHabit(input.value);
+                    input.value = '';
+                });
+            }
+
+            addHabit(name) {
+                const newHabit = {
+                    id: Date.now(),
+                    name,
+                    completedDays: []
+                };
+                this.habits.push(newHabit);
+                this.saveHabits();
+                this.renderHabits();
+            }
+
+            toggleDay(habitId, dayIndex) {
+                const habit = this.habits.find(h => h.id === habitId);
+                const dayExists = habit.completedDays.includes(dayIndex);
+                
+                if (dayExists) {
+                    habit.completedDays = habit.completedDays.filter(day => day !== dayIndex);
+                } else {
+                    habit.completedDays.push(dayIndex);
+                }
+
+                this.saveHabits();
+                this.renderHabits();
+            }
+
+            calculateStreak(completedDays) {
+                let maxStreak = 0;
+                let currentStreak = 0;
+
+                // Sort days to ensure correct streak calculation
+                const sortedDays = completedDays.sort((a, b) => a - b);
+
+                for (let i = 0; i < sortedDays.length; i++) {
+                    if (i === 0 || sortedDays[i] === sortedDays[i-1] + 1) {
+                        currentStreak++;
+                        maxStreak = Math.max(maxStreak, currentStreak);
+                    } else {
+                        currentStreak = 1;
+                    }
+                }
+
+                return maxStreak;
+            }
+
+            saveHabits() {
+                localStorage.setItem('habits', JSON.stringify(this.habits));
+            }
+
+            renderHabits() {
+                const habitsList = document.getElementById('habits-list');
+                habitsList.innerHTML = '';
+
+                this.habits.forEach(habit => {
+                    const habitElement = document.createElement('div');
+                    habitElement.classList.add('habit-container');
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.classList.add('habit-name');
+                    nameSpan.textContent = habit.name;
+
+                    const streakSpan = document.createElement('span');
+                    streakSpan.classList.add('streak');
+                    streakSpan.textContent = `Streak: ${this.calculateStreak(habit.completedDays)}`;
+
+                    habitElement.appendChild(nameSpan);
+                    habitElement.appendChild(streakSpan);
+
+                    // Create 30 day boxes
+                    for (let i = 0; i < 30; i++) {
+                        const dayBox = document.createElement('div');
+                        dayBox.classList.add('day-box');
+                        
+                        if (habit.completedDays.includes(i)) {
+                            dayBox.classList.add('completed');
+                        }
+
+                        dayBox.addEventListener('click', () => this.toggleDay(habit.id, i));
+                        habitElement.appendChild(dayBox);
+                    }
+
+                    habitsList.appendChild(habitElement);
+                });
+            }
+        }
+
+        // Initialize the habit tracker when the page loads
+        const habitTracker = new HabitTracker();
+    </script>
+</body>
+</html>
